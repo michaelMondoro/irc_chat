@@ -1,7 +1,7 @@
 import socket 
 from threading import Thread
 import curses
-
+import multiprocessing
 
 HEADER_LEN = 10
 IP = "127.0.0.1"
@@ -13,6 +13,7 @@ class Client:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect((IP, PORT))
         self.s.settimeout(.3)
+        self.stop = False
 
         # GUI
         self.stdscr = curses.initscr()
@@ -54,11 +55,14 @@ class Client:
 
     def read_from_server(self):
         while True:
+            if self.stop:
+                    break
             try:
                 header = self.read_header()
                 if header != -1:
                     msg = self.s.recv(header).decode('utf-8')
                     self.write_to_terminal(msg)
+                
             except Exception as e:
                 # self.stdscr.addstr(20,20,str(e))
                 # self.stdscr.refresh()
@@ -111,8 +115,8 @@ class Client:
         self.send_msg(self.username)
 
         # Start revieving data from server
+        #recieve = multiprocessing.Process(target=self.read_from_server, args=())
         recieve = Thread(target=self.read_from_server)
-        recieve.setDaemon(True)
         recieve.start()
 
         while True:
@@ -120,14 +124,15 @@ class Client:
             curses.echo()
             msg = self.read(self.cols)
             if len(msg) > 0:
-                if msg == "exit":
+                if msg == ":exit":
                     break
                 self.write_to_terminal(f"{self.username}: {msg}")
                 self.send_msg(f"{self.username}: {msg}")
             
-        
+        self.stop = True
         print("EXITING")
-        exit(1)
+        curses.endwin()
+        recieve.join()
             
         
 client = Client()

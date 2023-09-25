@@ -104,7 +104,6 @@ def accept():
             clients.append(client)
 
             t = Thread(target=client_thread, args=(client,))
-            t.setDaemon(True)
             t.start()
                         
              
